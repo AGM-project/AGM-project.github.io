@@ -293,7 +293,7 @@
             <p style="margin-bottom: 40px; font-size: 1.1em; color: var(--text-muted);">
                 Tertarik untuk membangun sesuatu yang hebat bersama? Atau sekadar ingin menyapa? Kotak masuk email saya selalu terbuka.
             </p>
-            <a href="mailto:agam.aria.damar@gmail.com" class="btn">Kirim Pesan Sekarang</a>
+            <a href="#" id="contact-btn" class="btn">Kirim Pesan Sekarang</a>
         </div>
     </section>
 
@@ -342,6 +342,11 @@
         }
         window.addEventListener("scroll", reveal);
         reveal(); // Panggil sekali saat web pertama kali dibuka
+        (function() {
+        var codes = [97, 103, 97, 109, 46, 97, 114, 105, 97, 46, 100, 97, 109, 97, 114, 64, 103, 109, 97, 105, 108, 46, 99, 111, 109];
+        var email = codes.map(function(c) { return String.fromCharCode(c); }).join('');
+        document.getElementById('contact-btn').setAttribute('href', 'mailto:' + email);
+        })();
     </script>
 
 </body>
