@@ -1,0 +1,7 @@
+# Local environment variables
+.env
+.env.local
+.env.*.local
+
+# Leave the example template tracked by Git
+!.env.example

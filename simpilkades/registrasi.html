@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrasi Pemilih</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card p-4 shadow-sm">
+          <a href="index.html" class="btn btn-sm btn-secondary py-3 mb-4">KEMBALI</a>
+          <h4 class="mb-4">Registrasi DPT & Cetak QR</h4>
+          <form id="regForm">
+            <input type="hidden" name="action" value="register">
+            <div class="mb-3">
+              <label>NIK</label>
+              <input type="number" name="nik" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label>Nama Lengkap</label>
+              <input type="text" name="nama" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="btnSubmit">DAFTAR & BUAT QR</button>
+          </form>
+
+          <div id="qrResult" class="text-center mt-4 d-none">
+            <hr>
+            <h5 class="text-success">Berhasil Terdaftar!</h5>
+            <div id="qrcode" class="d-flex justify-content-center my-3"></div>
+            <h5 id="namaTampil"></h5>
+            <p id="nikTampil" class="text-muted"></p>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">Cetak Tiket QR</button>
+            <button class="btn btn-secondary btn-sm" onclick="location.reload()">Daftar Baru</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbywW2gdAHbxLtlZw7m8uHOnRwFSMdpL007Wen23lWs/dev';
+    
+    document.getElementById('regForm').addEventListener('submit', e => {
+      e.preventDefault();
+      document.getElementById('btnSubmit').innerText = 'Memproses...';
+      
+      fetch(scriptURL, { method: 'POST', body: new FormData(e.target) })
+        .then(res => res.json())
+        .then(data => {
+          if(data.status === 'error') {
+            alert(data.message);
+            document.getElementById('btnSubmit').innerText = 'Daftarkan & Buat QR';
+          } else {
+            document.getElementById('regForm').classList.add('d-none');
+            document.getElementById('qrResult').classList.remove('d-none');
+            
+            document.getElementById('namaTampil').innerText = data.nama;
+            document.getElementById('nikTampil').innerText = "NIK: " + data.nik;
+            
+            // Isi QR Code adalah "NIK|Nama"
+            new QRCode(document.getElementById("qrcode"), {
+              text: data.nik + "|" + data.nama,
+              width: 200, height: 200
+            });
+          }
+        });
+    });
+  </script>
+</body>
+</html>
