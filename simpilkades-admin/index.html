@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - E-Pilkades</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hidden { display: none !important; }
+        .print-area { text-align: center; margin-top: 15px; }
+        .table-avatar { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; }
+        .action-btn { font-size: 0.8rem; padding: 4px 8px; }
+    </style>
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="#">Panel Admin Pilkades</a>
+        <a class="btn btn-warning btn-sm fw-bold" href="../simpilkades/index.html">Ke Bilik Suara</a>
+    </div>
+</nav>
+
+<div class="container mt-4 mb-5">
+    <h3 class="mb-4 text-center">Management Data</h3>
+    
+    <!-- BAGIAN INPUT DATA -->
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white fw-bold">Tambah Kandidat</div>
+                <div class="card-body">
+                    <input type="text" id="k_nama" class="form-control mb-3" placeholder="Nama Kandidat">
+                    <label class="form-label small fw-bold mb-1">Upload Foto Kandidat:</label>
+                    <input type="file" id="k_foto" class="form-control mb-4" accept="image/*">
+                    <button class="btn btn-primary w-100" onclick="tambahKandidat()">Simpan Kandidat</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white fw-bold">Tambah Pemilih & Cetak QR</div>
+                <div class="card-body">
+                    <input type="text" id="p_nama" class="form-control mb-3" placeholder="Nama Pemilih">
+                    <input type="number" id="p_nik" class="form-control mb-4" placeholder="NIK Pemilih">
+                    <button class="btn btn-success w-100 mb-3" onclick="tambahPemilih()">Simpan & Generate QR Code</button>
+                    
+                    <div id="qrResult" class="hidden print-area border p-3 rounded bg-white">
+                        <p class="text-muted small mb-2">Cetak QR Code ini dan berikan ke pemilih.</p>
+                        <img id="qrImage" src="" alt="QR Code" class="img-fluid mb-2" style="max-width: 200px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="my-4">
+
+    <!-- BAGIAN TABEL KANDIDAT -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>Data Kandidat</span>
+            <button class="btn btn-sm btn-outline-light" onclick="loadKandidat()">Refresh</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Foto</th>
+                            <th>ID Kandidat</th>
+                            <th>Nama Kandidat</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableKandidat">
+                        <tr><td colspan="4" class="text-center">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- BAGIAN TABEL PEMILIH -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+            <span>Data Pemilih</span>
+            <button class="btn btn-sm btn-outline-light" onclick="loadPemilih()">Refresh</button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>ID Pemilih</th>
+                            <th>Nama</th>
+                            <th>NIK</th>
+                            <th>Status</th>
+                            <th>Pilihan (ID)</th>
+                            <th>Waktu Memilih</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablePemilih">
+                        <tr><td colspan="6" class="text-center">Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // MASUKKAN URL GOOGLE APPS SCRIPT ANDA DI BAWAH INI
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRKa8csKxTAUwGpmY6TqE5QhCnH6kvZtCSx9WDUnnO1W_YBSjOkKLbuWLuP1MJ3Xk6/exec'; 
+
+    async function req(data) {
+        let res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {'Content-Type': 'text/plain;charset=utf-8'}
+        });
+        return await res.json();
+    }
+
+    // Load data otomatis saat halaman admin dibuka
+    window.onload = function() {
+        loadKandidat();
+        loadPemilih();
+    };
+
+    // --- FUNGSI LOAD DATA KANDIDAT ---
+    async function loadKandidat() {
+        document.getElementById('tableKandidat').innerHTML = `<tr><td colspan="4" class="text-center text-muted">Memuat data...</td></tr>`;
+        let res = await req({ action: 'getKandidat' });
+        let html = '';
+        if (res.success && res.data.length > 0) {
+            res.data.forEach(k => {
+                html += `
+                <tr>
+                    <td><img src="${k.foto}" class="table-avatar" alt="foto"></td>
+                    <td class="align-middle">${k.id}</td>
+                    <td class="align-middle fw-bold">${k.nama}</td>
+                    <td class="align-middle text-center">
+                        <button class="btn btn-danger action-btn" onclick="hapusKandidat('${k.id}')">Hapus</button>
+                    </td>
+                </tr>`;
+            });
+        } else {
+            html = `<tr><td colspan="4" class="text-center text-muted">Belum ada data kandidat.</td></tr>`;
+        }
+        document.getElementById('tableKandidat').innerHTML = html;
+    }
+
+    // --- FUNGSI LOAD DATA PEMILIH ---
+    async function loadPemilih() {
+        document.getElementById('tablePemilih').innerHTML = `<tr><td colspan="7" class="text-center text-muted">Memuat data...</td></tr>`;
+        
+        let res = await req({ action: 'getPemilih' });
+        let html = '';
+        if (res.success && res.data.length > 0) {
+            res.data.forEach(p => {
+                let badge = p.status_memilih === 'Sudah Memilih' ? '<span class="badge bg-success">Sudah</span>' : '<span class="badge bg-secondary">Belum</span>';
+                let validStatus = p.valid === true ? '<span class="text-success fw-bold">✓</span>' : (p.valid === false ? '<span class="text-danger fw-bold">✗ (Tidak Sah)</span>' : '-');
+                
+                html += `
+                <tr>
+                    <td class="align-middle text-muted small">${p.id}</td>
+                    <td class="align-middle fw-bold">${p.nama}</td>
+                    <td class="align-middle">${p.nik}</td>
+                    <td class="align-middle">${badge}</td>
+                    <td class="align-middle">${p.pilihan || '-'} ${p.pilihan ? `(${validStatus})` : ''}</td>
+                    <td class="align-middle small text-muted">${p.waktu || '-'}</td>
+                    <td class="align-middle text-center" style="white-space: nowrap;">
+                        <button class="btn btn-primary action-btn me-1" onclick="cetakQR('${p.nik}', '${p.nama}')">Cetak QR</button>
+                        <button class="btn btn-danger action-btn" onclick="hapusPemilih('${p.id}')">Hapus</button>
+                    </td>
+                </tr>`;
+            });
+        } else {
+            html = `<tr><td colspan="7" class="text-center text-muted">Belum ada data pemilih.</td></tr>`;
+        }
+        document.getElementById('tablePemilih').innerHTML = html;
+    }
+
+    // --- FUNGSI HAPUS DATA KANDIDAT ---
+    async function hapusKandidat(id) {
+        if(confirm(`Yakin ingin menghapus kandidat ID: ${id}?`)) {
+            let res = await req({ action: 'deleteKandidat', id: id });
+            if(res.success) {
+                alert("Kandidat berhasil dihapus!");
+                loadKandidat(); // Refresh tabel
+            }
+        }
+    }
+
+    // --- FUNGSI HAPUS DATA PEMILIH ---
+    async function hapusPemilih(id) {
+        if(confirm(`Yakin ingin menghapus pemilih ID: ${id}?`)) {
+            let res = await req({ action: 'deletePemilih', id: id });
+            if(res.success) {
+                alert("Pemilih berhasil dihapus!");
+                loadPemilih(); // Refresh tabel
+            }
+        }
+    }
+
+    // --- FUNGSI CETAK QR CODE ---
+    function cetakQR(nik, nama) {
+        let qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${nik}`;
+        
+        // Membuka jendela baru khusus untuk format cetak
+        let printWindow = window.open('', '_blank', 'width=500,height=500');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Cetak QR Code - ${nama}</title>
+                    <style>
+                        body { text-align: center; font-family: sans-serif; padding-top: 30px; }
+                        .kartu { border: 2px dashed #000; padding: 20px; display: inline-block; border-radius: 10px; }
+                        h3 { margin-top: 15px; margin-bottom: 5px; font-size: 22px; text-transform: uppercase;}
+                        p { margin: 0; color: #333; font-size: 16px; }
+                        .info { font-size: 12px; margin-top: 15px; color: #666; }
+                        img { max-width: 220px; height: auto; }
+                    </style>
+                </head>
+                <body>
+                    <div class="kartu">
+                        <img src="${qrUrl}" alt="QR Code ${nik}" onload="window.print(); window.close();">
+                        <h3>${nama}</h3>
+                        <p>NIK: <b>${nik}</b></p>
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
+    // --- FUNGSI TAMBAH DATA ---
+    async function tambahKandidat() {
+        let nama = document.getElementById('k_nama').value;
+        let fileInput = document.getElementById('k_foto');
+        let file = fileInput.files[0];
+        
+        if(!nama || !file) { 
+            alert("Harap isi nama dan pilih foto!"); 
+            return; 
+        }
+        
+        let btn = event.target; 
+        btn.disabled = true; 
+        btn.innerText = "Mengunggah Foto & Menyimpan...";
+
+        // Kita ubah file gambar menjadi teks (Base64) agar bisa dikirim ke Google Apps Script
+        let reader = new FileReader();
+        reader.onload = async function(e) {
+            let dataUrl = e.target.result;
+            // Pecah string untuk mengambil hanya kode base64-nya saja
+            let base64 = dataUrl.split(',')[1]; 
+
+            let data = { 
+                action: 'addKandidat', 
+                nama: nama, 
+                fileBase64: base64,
+                mimeType: file.type,
+                fileName: file.name
+            };
+
+            let res = await req(data);
+            if(res.success) {
+                alert("Kandidat dan foto berhasil disimpan ke Drive!");
+                document.getElementById('k_nama').value = '';
+                document.getElementById('k_foto').value = ''; // Reset input file
+                loadKandidat(); // Refresh tabel
+            } else {
+                alert("Gagal: " + res.error);
+            }
+            btn.disabled = false; 
+            btn.innerText = "Simpan Kandidat";
+        };
+        
+        // Mulai membaca file
+        reader.readAsDataURL(file);
+    }
+
+    async function tambahPemilih() {
+        let nama = document.getElementById('p_nama').value;
+        let nik = document.getElementById('p_nik').value;
+        if(!nama || !nik) { alert("Harap isi nama dan NIK!"); return; }
+
+        let btn = event.target; btn.disabled = true; btn.innerText = "Menyimpan...";
+        let res = await req({ action: 'addPemilih', nama: nama, nik: nik });
+        if(res.success) {
+            document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${nik}`;
+            document.getElementById('qrResult').classList.remove('hidden');
+            document.getElementById('p_nama').value = '';
+            document.getElementById('p_nik').value = '';
+            loadPemilih(); // Refresh tabel otomatis
+        }
+        btn.disabled = false; btn.innerText = "Simpan & Generate QR Code";
+    }
+</script>
+</body>
+</html>
