@@ -172,12 +172,14 @@
         
         let confirmHtml = "";
         selectedKandidat.forEach(id => {
-            let k = allKandidat.find(x => x.id === id);
-            confirmHtml += `
-            <div class="mb-3 text-center">
-                <img src="${k.foto}" alt="${k.nama}" class="confirm-img shadow-sm d-block mx-auto">
-                <div>${k.nama}</div>
-            </div>`;
+            let k = allKandidat.find(x => String(x.id) === String(id));
+            if(k) {
+                confirmHtml += `
+                <div class="mb-3 text-center">
+                    <img src="${k.foto}" alt="${k.nama}" class="confirm-img shadow-sm d-block mx-auto">
+                    <div>${k.nama}</div>
+                </div>`;
+            }
         });
 
         if(selectedKandidat.length > 1) {
