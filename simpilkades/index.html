@@ -2,79 +2,117 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bilik Suara - E-Pilkades</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
+        /* Mencegah scroll dan mengatur tinggi penuh */
+        body, html { height: 100%; overflow: hidden; background-color: #f8f9fa; }
         .hidden { display: none !important; }
-        #reader { width: 100%; max-width: 500px; margin: 0 auto; border: none; }
-        .kandidat-card { cursor: pointer; border: 3px solid transparent; transition: 0.3s; display: flex; flex-direction: column;}
-        .kandidat-card.selected { border-color: #198754; background-color: #e9f7ef; transform: scale(1.02); }
-        .kandidat-img { height: auto; max-height: 250px; object-fit: cover; width: 100%; flex-grow: 1;}
         
+        /* Container utama agar pas 1 layar dikurangi tinggi Navbar */
+        .fit-wrapper {
+            height: calc(100vh - 60px); 
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #reader { width: 100%; max-width: 350px; margin: 0 auto; border: none; }
+        
+        /* Layout Voting - Flexbox */
+        #voteSection {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        /* Teks Info lebih ringkas */
+        .alert-compact { padding: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+        
+        /* Grid Kandidat (2x2 di HP, 4x1 di Desktop) */
         #kandidatList {
             display: grid;
-            gap: 15px;
-            grid-template-columns: repeat(1, 1fr);
+            gap: 10px;
+            grid-template-columns: repeat(2, 1fr); /* Mobile 2 kolom */
+            flex-grow: 1; /* Mengisi sisa ruang kosong di tengah */
+            align-content: center;
         }
-        @media (min-width: 576px) { #kandidatList { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 992px) { #kandidatList { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 768px) { 
+            #kandidatList { grid-template-columns: repeat(4, 1fr); gap: 15px; } 
+        }
         
-        .confirm-img { max-width: 150px; height: auto; border-radius: 8px; margin-bottom: 10px; }
+        /* Card & Image lebih proporsional */
+        .kandidat-card { cursor: pointer; border: 3px solid transparent; transition: 0.2s; display: flex; flex-direction: column; height: 100%; overflow: hidden;}
+        .kandidat-card.selected { border-color: #198754; background-color: #e9f7ef; transform: scale(1.02); }
+        .kandidat-img { 
+            height: 22vh; /* Tinggi foto beradaptasi dengan layar */
+            min-height: 120px;
+            max-height: 200px;
+            object-fit: cover; 
+            width: 100%; 
+        }
+        .card-body-compact { padding: 8px; text-align: center; background: white;}
+        .card-body-compact h6 { margin-bottom: 0; font-weight: bold; font-size: 0.95rem;}
+        
+        /* Modal Info & Gambar */
+        .confirm-img { max-width: 90px; height: 90px; object-fit: cover; border-radius: 50%; margin-bottom: 5px; border: 2px solid #ddd;}
+        .modal-body { padding: 15px; }
     </style>
 </head>
-<body class="bg-light">
-<!--
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="#">Bilik Suara Pilkades</a>
+<body>
+<!-- <nav class="navbar navbar-dark bg-primary shadow-sm" style="height: 60px;">
+    <div class="container-fluid px-3">
+        <span class="navbar-brand fw-bold mb-0 h1 fs-5">Bilik Suara</span>
         <a class="text-white-50 text-decoration-none small" href="admin.html">Admin</a>
     </div>
-</nav>
--->
+</nav> -->
 
-<div class="container mt-4">
+<div class="fit-wrapper">
     <!-- BAGIAN SCANNER -->
-    <div id="scanSection" class="text-center card shadow-sm p-4">
-        <h3 class="mb-3">Selamat Datang di Bilik Suara</h3>
-        <p class="text-muted">Arahkan QR Code Anda ke kamera untuk mulai memilih.</p>
+    <div id="scanSection" class="card shadow-sm p-3 m-auto w-100 text-center" style="max-width: 450px;">
+        <h4 class="mb-2">Scan NIK Anda</h4>
+        <p class="text-muted small mb-3">Arahkan QR Code ke kamera</p>
         <div id="reader"></div>
     </div>
     
-    <!-- BAGIAN VOTING (Disembunyikan awalnya) -->
+    <!-- BAGIAN VOTING -->
     <div id="voteSection" class="hidden">
-        <div class="alert alert-info text-center shadow-sm">
-            <h4>Halo, <strong id="voterName"></strong></h4>
-            <p class="mb-0">Silakan pilih kandidat. Jika Anda memilih <strong>lebih dari 1 (satu)</strong> kandidat, maka suara Anda dianggap <strong>TIDAK SAH</strong>.</p>
+        <!-- Pesan Sambutan -->
+        <div class="alert alert-info text-center shadow-sm alert-compact">
+            <div class="fw-bold mb-1">Halo, <span id="voterName" class="text-uppercase"></span></div>
+            <div style="font-size: 0.8rem; line-height: 1.2;">Pilih 1 kandidat. Jika lebih, suara <strong>TIDAK SAH</strong>.</div>
         </div>
         
-        <div class="mt-4" id="kandidatList">
-            <!-- Data kandidat akan masuk ke sini via javascript -->
+        <!-- List Kandidat -->
+        <div id="kandidatList">
+            <!-- Data dari JS akan dirender di sini -->
         </div>
         
-        <div class="text-center mt-4 mb-5">
-            <button class="btn btn-success btn-lg px-5 shadow" onclick="konfirmasiVote()">Tentukan Pilihan</button>
+        <!-- Tombol Tentukan Pilihan -->
+        <div class="mt-3 text-center">
+            <button class="btn btn-success btn-lg w-100 shadow fw-bold py-2" onclick="konfirmasiVote()" style="max-width: 500px;">Tentukan Pilihan</button>
         </div>
     </div>
 </div>
 
-<!-- MODAL KONFIRMASI -->
+<!-- MODAL KONFIRMASI (Lebih Ringkas) -->
 <div class="modal fade" id="confirmModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title">Konfirmasi Pilihan</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      <div class="modal-header bg-primary text-white py-2">
+        <h6 class="modal-title mb-0">Konfirmasi</h6>
+        <button type="button" class="btn-close btn-close-white" style="font-size: 0.8rem;" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body text-center">
-        <p class="fs-5">Anda memilih:</p>
-        <div id="confirmKandidat" class="fw-bold fs-4 text-success mb-3 d-flex flex-column align-items-center"></div>
-        <p class="text-muted small">Suara tidak dapat diubah setelah disimpan.</p>
+        <p class="small mb-2">Anda memilih:</p>
+        <div id="confirmKandidat" class="fw-bold text-success mb-2 d-flex flex-column align-items-center"></div>
+        <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0;">Suara tidak dapat diubah setelah disimpan.</p>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Batal</button>
-        <button type="button" class="btn btn-primary px-4" onclick="submitVote()">Simpan Suara</button>
+      <div class="modal-footer justify-content-center py-1">
+        <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">Batal</button>
+        <button type="button" class="btn btn-primary btn-sm px-3" onclick="submitVote()">Simpan</button>
       </div>
     </div>
   </div>
@@ -100,7 +138,6 @@
         return await res.json();
     }
 
-    // Otomatis jalankan scanner saat halaman dibuka
     window.onload = function() {
         startScanner();
         fetchKandidat();
@@ -113,12 +150,12 @@
         currentScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
         currentScanner.render(async (decodedText) => {
             currentScanner.clear();
-            document.getElementById('reader').innerHTML = "<h4 class='text-primary mt-4'>Memverifikasi NIK...</h4>";
+            document.getElementById('reader').innerHTML = "<h5 class='text-primary mt-3'>Memverifikasi...</h5>";
             
             let res = await req({ action: 'getPemilihByNik', nik: decodedText });
             if(res.success) {
                 if(res.data.status_memilih === 'Sudah Memilih') {
-                    alert("Maaf, NIK ini SUDAH DIGUNAKAN untuk memilih.");
+                    alert("Maaf, NIK ini SUDAH DIGUNAKAN.");
                     startScanner();
                 } else {
                     currentUser = res.data;
@@ -127,7 +164,7 @@
                     document.getElementById('voteSection').classList.remove('hidden');
                 }
             } else {
-                alert("NIK tidak ditemukan dalam database!");
+                alert("NIK tidak ditemukan!");
                 startScanner();
             }
         });
@@ -138,15 +175,12 @@
         if(res.success) {
             allKandidat = res.data;
             let html = '';
-            // Ambil maksimal 4 kandidat
             allKandidat.slice(0, 4).forEach(k => {
                 html += `
-                <div>
-                    <div class="card kandidat-card shadow-sm h-100" id="card_${k.id}" onclick="toggleKandidat('${k.id}')">
-                        <img src="${k.foto}" class="card-img-top kandidat-img" alt="${k.nama}">
-                        <div class="card-body text-center d-flex flex-column justify-content-end">
-                            <h4 class="card-title fw-bold">${k.nama}</h4>
-                        </div>
+                <div class="card kandidat-card shadow-sm" id="card_${k.id}" onclick="toggleKandidat('${k.id}')">
+                    <img src="${k.foto}" class="card-img-top kandidat-img" alt="${k.nama}">
+                    <div class="card-body-compact">
+                        <h6>${k.nama}</h6>
                     </div>
                 </div>`;
             });
@@ -167,24 +201,25 @@
 
     function konfirmasiVote() {
         if(selectedKandidat.length === 0) {
-            alert("Anda tidak mencoblos satupun. Silakan pilih kandidat!");
+            alert("Anda belum memilih kandidat!");
             return;
         }
         
         let confirmHtml = "";
         selectedKandidat.forEach(id => {
+            // FIX: String matching untuk menghindari error TypeError undefined
             let k = allKandidat.find(x => String(x.id) === String(id));
             if(k) {
                 confirmHtml += `
-                <div class="mb-3 text-center">
-                    <img src="${k.foto}" alt="${k.nama}" class="confirm-img shadow-sm d-block mx-auto">
-                    <div>${k.nama}</div>
+                <div class="mb-2 text-center">
+                    <img src="${k.foto}" class="confirm-img shadow-sm">
+                    <div class="fs-6 text-dark">${k.nama}</div>
                 </div>`;
             }
         });
 
         if(selectedKandidat.length > 1) {
-            confirmHtml += "<hr><div class='text-danger bg-warning p-2 mt-2 rounded fs-6'>⚠️ Peringatan: Anda memilih lebih dari 1 kandidat. Suara Anda akan dianggap <b>TIDAK SAH (INVALID)</b>.</div>";
+            confirmHtml += "<div class='text-danger bg-warning p-1 mt-1 rounded' style='font-size:0.75rem;'>⚠️ Lebih dari 1 kandidat. Suara <b>TIDAK SAH</b>.</div>";
         }
 
         document.getElementById('confirmKandidat').innerHTML = confirmHtml;
@@ -195,7 +230,7 @@
         confirmModal.hide();
         document.getElementById('voteSection').classList.add('hidden');
         document.getElementById('scanSection').classList.remove('hidden');
-        document.getElementById('reader').innerHTML = "<h4 class='text-success mt-4'>Menyimpan suara...</h4>";
+        document.getElementById('reader').innerHTML = "<h5 class='text-success mt-3'>Menyimpan suara...</h5>";
         
         let valid = selectedKandidat.length === 1; 
         let pilihan_id = selectedKandidat.join(", "); 
@@ -209,9 +244,9 @@
 
         let res = await req(data);
         if(res.success) {
-            alert("Suara berhasil disimpan! Terima kasih.");
+            alert("Berhasil! Terima kasih.");
             selectedKandidat = []; 
-            startScanner(); // Restart scanner
+            startScanner(); 
         }
     }
 </script>
